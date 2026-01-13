@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>4-Letter Word Guess</title>
+    <style>
+        :root {
+            --bg-color: #121213;
+            --text-color: #ffffff;
+            --input-bg: #2c2c2e;
+            --border-color: #3a3a3c;
+            --primary-color: #538d4e; /* Green */
+            --secondary-color: #b59f3b; /* Yellow */
+            --error-color: #ff4d4d;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Setup Screen */
+        #setup-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+            gap: 20px;
+        }
+
+        .btn {
+            background-color: var(--border-color);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 200px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background-color: var(--primary-color); }
+
+        /* Game Screen */
+        #game-screen {
+            display: none; /* Hidden by default */
+            width: 100%;
+            max-width: 500px;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* History Area */
+        #history-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .guess-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--input-bg);
+            padding: 12px 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 1.1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .guess-word {
+            letter-spacing: 3px;
+            font-weight: bold;
+            font-size: 1.3rem;
+        }
+
+        .guess-score {
+            font-size: 0.9rem;
+            display: flex;
+            gap: 10px;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: black;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        .badge-green { background-color: var(--primary-color); color: white; }
+        .badge-yellow { background-color: var(--secondary-color); color: white; }
+
+        /* Input Area */
+        #input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex-grow: 1;
+            background-color: var(--input-bg);
+            border: 2px solid var(--border-color);
+            color: white;
+            padding: 15px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            text-transform: uppercase;
+            text-align: center;
+            letter-spacing: 3px;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary-color);
+        }
+
+        /* Status & Modal */
+        #status-msg {
+            text-align: center;
+            height: 20px;
+            color: var(--error-color);
+            font-weight: bold;
+        }
+
+        .game-over-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 100;
+            width: 80%;
+            max-width: 300px;
+        }
+        
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            z-index: 99;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Code Breaker</h1>
+
+    <div id="setup-screen">
+        <p>Guess the 4-letter secret word.</p>
+        <button class="btn" onclick="startGame(6)">6 Guesses</button>
+        <button class="btn" onclick="startGame(8)">8 Guesses</button>
+    </div>
+
+    <div id="game-screen">
+        <div style="display:flex; justify-content:space-between; color: #888;">
+            <span id="remaining-display">Guesses: 6</span>
+            <button onclick="resetGame()" style="background:none; border:none; color:#888; text-decoration:underline; cursor:pointer;">Restart</button>
+        </div>
+
+        <div id="history-container">
+            </div>
+
+        <div id="status-msg"></div>
+
+        <div id="input-area">
+            <input type="text" id="guess-input" maxlength="4" placeholder="TYPE HERE" autocomplete="off">
+            <button class="btn btn-primary" style="width: auto;" onclick="handleGuess()">GUESS</button>
+        </div>
+    </div>
+
+    <div id="overlay"></div>
+    <div id="modal" class="game-over-modal">
+        <h2 id="modal-title">GAME OVER</h2>
+        <p id="modal-msg">The word was WORD</p>
+        <button class="btn btn-primary" onclick="resetGame()">Play Again</button>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const WORDS = [
+            "AREA", "ARMY", "BABY", "BACK", "BALL", "BAND", "BANK", "BASE", "BILL", "BODY",
+            "BOOK", "CALL", "CARD", "CARE", "CASE", "CASH", "CITY", "CLUB", "COAT", "CODE",
+            "COLD", "COST", "DATE", "DAYS", "DEAL", "DOOR", "DUTY", "EAST", "EDGE", "FACE",
+            "FACT", "FARM", "FEAR", "FIRE", "FISH", "FOOD", "FOOT", "FORM", "FUND", "GAME",
+            "GIRL", "GOAL", "GOLD", "HAIR", "HALF", "HALL", "HAND", "HEAD", "HELP", "HILL",
+            "HOME", "HOPE", "HOUR", "IDEA", "IRON", "ITEM", "JOBS", "KING", "LACK", "LADY",
+            "LAND", "LIFE", "LINE", "LIST", "LOOK", "LORD", "LOVE", "MARK", "MARY", "MIND",
+            "MISS", "MOVE", "NAME", "NEWS", "NOTE", "OPEN", "PACK", "PAGE", "PAIN", "PAIR",
+            "PARK", "PART", "PAST", "PATH", "PLAY", "POOR", "POST", "RACE", "RAIN", "RATE",
+            "READ", "REST", "RICH", "RIDE", "RISK", "ROAD", "ROCK", "ROLE", "ROOM", "RULE"
+        ];
+
+        // --- STATE ---
+        let secretWord = "";
+        let maxGuesses = 6;
+        let currentGuessCount = 0;
+        let isGameOver = false;
+
+        // --- DOM ELEMENTS ---
+        const setupScreen = document.getElementById('setup-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const historyContainer = document.getElementById('history-container');
+        const inputField = document.getElementById('guess-input');
+        const remainingDisplay = document.getElementById('remaining-display');
+        const statusMsg = document.getElementById('status-msg');
+        const modal = document.getElementById('modal');
+        const overlay = document.getElementById('overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMsg = document.getElementById('modal-msg');
+
+        // --- FUNCTIONS ---
+
+        function startGame(difficulty) {
+            maxGuesses = difficulty;
+            secretWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+            currentGuessCount = 0;
+            isGameOver = false;
+
+            // UI Reset
+            historyContainer.innerHTML = '';
+            inputField.value = '';
+            statusMsg.textContent = '';
+            remainingDisplay.textContent = `Guesses: ${maxGuesses}`;
+            modal.style.display = 'none';
+            overlay.style.display = 'none';
+
+            // Switch Screens
+            setupScreen.style.display = 'none';
+            gameScreen.style.display = 'flex';
+            
+            // Focus input (works best on desktop, sometimes restricted on mobile)
+            inputField.focus();
+            
+            console.log("Secret (for debugging):", secretWord);
+        }
+
+        function resetGame() {
+            gameScreen.style.display = 'none';
+            setupScreen.style.display = 'flex';
+            modal.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+
+        function calculateScore(secret, guess) {
+            let correctPos = 0;
+            let correctLetter = 0;
+            
+            let sList = secret.split('');
+            let gList = guess.split('');
+
+            // Pass 1: Correct Position (Green)
+            for (let i = sList.length - 1; i >= 0; i--) {
+                if (gList[i] === sList[i]) {
+                    correctPos++;
+                    sList.splice(i, 1);
+                    gList.splice(i, 1);
+                }
+            }
+
+            // Pass 2: Correct Letter (Yellow)
+            for (let i = 0; i < gList.length; i++) {
+                const index = sList.indexOf(gList[i]);
+                if (index !== -1) {
+                    correctLetter++;
+                    sList.splice(index, 1);
+                }
+            }
+
+            return { correctPos, correctLetter };
+        }
+
+        function handleGuess() {
+            if (isGameOver) return;
+
+            const guess = inputField.value.trim().toUpperCase();
+
+            // Validation
+            if (guess.length !== 4) {
+                statusMsg.textContent = "Word must be 4 letters!";
+                shakeInput();
+                return;
+            }
+            if (!/^[A-Z]+$/.test(guess)) {
+                statusMsg.textContent = "Letters only!";
+                shakeInput();
+                return;
+            }
+
+            statusMsg.textContent = ""; // Clear errors
+            currentGuessCount++;
+            remainingDisplay.textContent = `Guesses: ${maxGuesses - currentGuessCount}`;
+
+            // Calculate Score
+            const score = calculateScore(secretWord, guess);
+            addHistoryRow(guess, score);
+            inputField.value = "";
+            inputField.focus();
+
+            // Win Condition
+            if (guess === secretWord) {
+                endGame(true);
+                return;
+            }
+
+            // Lose Condition
+            if (currentGuessCount >= maxGuesses) {
+                endGame(false);
+            }
+        }
+
+        function addHistoryRow(guess, score) {
+            const row = document.createElement('div');
+            row.className = 'guess-row';
+            row.innerHTML = `
+                <span class="guess-word">${guess}</span>
+                <div class="guess-score">
+                    <span class="badge badge-green">${score.correctPos} Exact</span>
+                    <span class="badge badge-yellow">${score.correctLetter} Partial</span>
+                </div>
+            `;
+            historyContainer.appendChild(row);
+            // Auto scroll to bottom
+            historyContainer.scrollTop = historyContainer.scrollHeight;
+        }
+
+        function endGame(isWin) {
+            isGameOver = true;
+            overlay.style.display = 'block';
+            modal.style.display = 'block';
+            
+            if (isWin) {
+                modalTitle.textContent = "YOU WON! 🎉";
+                modalTitle.style.color = "var(--primary-color)";
+                modalMsg.textContent = `The word was ${secretWord}. You found it in ${currentGuessCount} guesses.`;
+            } else {
+                modalTitle.textContent = "GAME OVER ❌";
+                modalTitle.style.color = "var(--error-color)";
+                modalMsg.textContent = `The word was ${secretWord}. Better luck next time!`;
+            }
+        }
+
+        function shakeInput() {
+            inputField.style.borderColor = "var(--error-color)";
+            setTimeout(() => {
+                inputField.style.borderColor = "var(--border-color)";
+            }, 500);
+        }
+
+        // --- EVENT LISTENERS ---
+        
+        // Allow "Enter" key to submit
+        inputField.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                handleGuess();
+            }
+        });
+
+    </script>
+</body>
+</html>
